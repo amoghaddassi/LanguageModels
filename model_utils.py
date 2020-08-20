@@ -1,6 +1,8 @@
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, LSTM, Dense, Bidirectional
 
+import numpy as np
+
 ###################################
 # GENERIC MODEL UTILITY FUNCTIONS #
 ###################################
@@ -19,7 +21,7 @@ def fit_model(model, filename, train_enc, train_dec, train_dec_target,
     # saves the model
     model.save(filename)
 
-def translate(encoder_model, decoder_model, input_seq, input_len, dec_alphabet):
+def translate(encoder_model, decoder_model, input_seq, input_len, dec_alphabet, bi=False):
     """
     target = encode(src)
     while target not done:
@@ -31,7 +33,7 @@ def translate(encoder_model, decoder_model, input_seq, input_len, dec_alphabet):
     dec_token_index = {v:k for k,v in enumerate(dec_alphabet)}
     num_dec_tokens = len(dec_alphabet)
     max_decoder_len = input_len
-    # input --> hidden state
+    # input --> (hidden state
     states_value = encoder_model.predict(input_seq)
     
     # generate empty target sequence with offset
@@ -44,8 +46,13 @@ def translate(encoder_model, decoder_model, input_seq, input_len, dec_alphabet):
     stop_condition = False
     decoded_sentence = ''
     while not stop_condition:
-        output_tokens, h, c = decoder_model.predict(
-            [target_seq] + states_value)
+        if not bi:
+            output_tokens, h, c = decoder_model.predict(
+                [target_seq] + states_value)
+        else:
+            output_tokens, h_for, c_for, h_back, c_back = decoder_model.predict(
+                [target_seq] + states_value)
+        
         # Sample a token
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
         sampled_char = dec_alphabet[sampled_token_index]
@@ -54,17 +61,18 @@ def translate(encoder_model, decoder_model, input_seq, input_len, dec_alphabet):
         if sampled_char == '\n' or len(decoded_sentence) > max_decoder_len:
             stop_condition = True
         # update the target sequence
-        target_seq = np.zeros((1, 1, num_decoder_tokens))
+        target_seq = np.zeros((1, 1, len(dec_alphabet)))
         target_seq[0, 0, sampled_token_index] = 1.
         # update states
-        states_value = [h, c]
+        if not bi: states_value = [h, c]
+        else: states_value = [h_for, c_for, h_back, c_back]
     return decoded_sentence
 
 ######################################################    
 # MODEL DEFINITION FUNCTIONS: return compiled models #
 ######################################################
     
-def basic_lstm(num_enc_tokens, num_dec_tokens, latent_dim=128, 
+def make_basic_lstm(num_enc_tokens, num_dec_tokens, latent_dim=128, 
                 optimizer='rmsprop', loss='categorical_crossentropy'):
     """
     One of the simplest models that can be implemented for this task. Has following architecture:
@@ -114,22 +122,30 @@ def basic_lstm(num_enc_tokens, num_dec_tokens, latent_dim=128,
 
     return model, encoder_model, decoder_model
 
-def deep_lstm(num_enc_tokens, num_dec_tokens, latent_dim=128, 
+def make_deep_lstm(num_enc_tokens, num_dec_tokens, latent_dim=128, 
             optimizer='rmsprop', loss='categorical_crossentropy'):
     """
-    tutorial: https://keras.io/examples/nlp/bidirectional_lstm_imdb/
+    Architecture: both the encoder and decoder are 2 layer bidirectional LSTMs.
+    tutorial (not exactly the same): https://keras.io/examples/nlp/bidirectional_lstm_imdb/
     """
     # ENCODER
     encoder_inputs = Input(shape=(None, num_enc_tokens))
-    encoder = Bidirectional(LSTM(latent_dim, return_state=True))
+    encoder = Bidirectional(LSTM(latent_dim, return_state=True, return_sequences=True))
     encoder_outputs, state_h_forward, state_c_forward, state_h_back, state_c_back = encoder(encoder_inputs)
+    encoder_states = [state_h_forward, state_c_forward, state_h_back, state_c_back]
+    encoder = Bidirectional(LSTM(latent_dim, return_state=True))
+    encoder_outputs, state_h_forward, state_c_forward, state_h_back, state_c_back = encoder(encoder_outputs, initial_state=encoder_states)
+    
     # We discard `encoder_outputs` and only keep the states.
     encoder_states = [state_h_forward, state_c_forward, state_h_back, state_c_back]
     
     # DECODER
     decoder_inputs = Input(shape=(None, num_dec_tokens))
     decoder = Bidirectional(LSTM(latent_dim, return_sequences=True, return_state=True))
-    decoder_outputs, _, _, _, _ = decoder(decoder_inputs, initial_state=encoder_states)
+    decoder_outputs, h_for, c_for, h_back, c_back = decoder(decoder_inputs, initial_state=encoder_states)
+    decoder_states = [h_for, c_for, h_back, c_back]
+    decoder2 = Bidirectional(LSTM(latent_dim, return_sequences=True, return_state=True))
+    decoder_outputs, h_for, c_for, h_back, c_back = decoder2(decoder_outputs, initial_state=decoder_states)
     decoder_dense = Dense(num_dec_tokens, activation='softmax')
     decoder_outputs = decoder_dense(decoder_outputs)
     
@@ -154,3 +170,7 @@ def deep_lstm(num_enc_tokens, num_dec_tokens, latent_dim=128,
         [decoder_outputs] + decoder_states)
 
     return model, encoder_model, decoder_model
+
+def make_attention_lstm(num_enc_tokens, num_dec_tokens, latent_dim=128, 
+            optimizer='rmsprop', loss='categorical_crossentropy'):
+    return None, None, None
