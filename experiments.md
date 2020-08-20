@@ -6,22 +6,20 @@ This will contain a history of all models that I've trained.
 
 ### Architecture
 
-Model: "model_4"
-__________________________________________________________________________________________________
-Layer (type)                    Output Shape         Param #     Connected to                     
-==================================================================================================
 input_9 (InputLayer)            [(None, None, 29)]   0                                            
 __________________________________________________________________________________________________
 input_10 (InputLayer)           [(None, None, 34)]   0                                            
 __________________________________________________________________________________________________
 lstm_8 (LSTM)                   [(None, 256), (None, 292864      input_9[0][0]                    
 __________________________________________________________________________________________________
+
 lstm_9 (LSTM)                   [(None, None, 256),  297984      input_10[0][0]                   
                                                                  lstm_8[0][1]                     
                                                                  lstm_8[0][2]                     
 __________________________________________________________________________________________________
+
 dense_4 (Dense)                 (None, None, 34)     8738        lstm_9[0][0]                     
-==================================================================================================
+
 Total params: 599,586
 Trainable params: 599,586
 Non-trainable params: 0
@@ -123,36 +121,37 @@ All blank spaces. Seems that it's not able to learn context dependent distributi
 
 ### Architecture:
 
-Model: "model_35"
-__________________________________________________________________________________________________
-Layer (type)                    Output Shape         Param #     Connected to                     
-==================================================================================================
 input_89 (InputLayer)           [(None, None, 29)]   0                                            
 __________________________________________________________________________________________________
 bidirectional_44 (Bidirectional [(None, None, 256),  161792      input_89[0][0]                   
 __________________________________________________________________________________________________
+
 input_90 (InputLayer)           [(None, None, 34)]   0                                            
 __________________________________________________________________________________________________
+
 bidirectional_45 (Bidirectional [(None, 256), (None, 394240      bidirectional_44[0][0]           
                                                                  bidirectional_44[0][1]           
                                                                  bidirectional_44[0][2]           
                                                                  bidirectional_44[0][3]           
                                                                  bidirectional_44[0][4]           
 __________________________________________________________________________________________________
+
 bidirectional_46 (Bidirectional [(None, None, 256),  166912      input_90[0][0]                   
                                                                  bidirectional_45[0][1]           
                                                                  bidirectional_45[0][2]           
                                                                  bidirectional_45[0][3]           
                                                                  bidirectional_45[0][4]           
 __________________________________________________________________________________________________
+
 bidirectional_47 (Bidirectional [(None, None, 256),  394240      bidirectional_46[0][0]           
                                                                  bidirectional_46[0][1]           
                                                                  bidirectional_46[0][2]           
                                                                  bidirectional_46[0][3]           
                                                                  bidirectional_46[0][4]           
 __________________________________________________________________________________________________
+
 dense_16 (Dense)                (None, None, 34)     8738        bidirectional_47[0][0]           
-==================================================================================================
+
 Total params: 1,125,922
 Trainable params: 1,125,922
 Non-trainable params: 0
@@ -168,7 +167,7 @@ Final loss: ~1e-6
 ### Output
 
 example: 181
-====================
+
 English: 	in his november   report the auditor general raises the question of employment insurance surplus 
 
 French (acutal): 	dans son rapport du  novembre  le vérificateur général parle de lexcédent de la caisse de lassuranceemploi 
@@ -179,7 +178,7 @@ French (model): ptlamômôgôgôgôyôlôôôôôôôôôôôôôôôôôôôô�
 
 ====================
 example: 182
-====================
+
 English: 	the ei premium rate is set by the ei commission which is composed by representatives from the employees the employers and the government and must be approved by cabinet on the recommendation of the human resources development and finance ministers 
 
 French (acutal): 	les taux de cotisation à lassuranceemploi sont établis par la commission dassuranceemploi qui regroupe des représentants des employés des employeurs et du gouvernement et ils doivent tre approuvés par le cabinet sur la recommandation du ministre des finances et du ministre du développement des ressources humaines 
@@ -188,7 +187,6 @@ French (model + feedback): les taux de cotisation à lassuranceemploi sont étab
 
 French (model): ptlmmmmmmmmôgôgôgôyôlôôôôôôôôôôôôôôôôôôôôôôôôôôôôôyryuuuuuuuuuyjyyoylzôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôyryuuuuuuuuuyjyyoylzôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôyryuuuuuuuuuyjyyoylzôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôôyryuuuuuuuuuyjyyoylzôôôôôôôôôôôôôôôôôôô
 
-====================
 
 ### Notes
 - So model+feedback gets it pretty much perfect. Just the model does garbage on its own. Explains why we have such a low training loss. But why would just the model do so poorly? This isn't a problem I had with the basic lstm (still the best I have).
